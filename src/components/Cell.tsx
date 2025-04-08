@@ -3,21 +3,22 @@ import styles from "../styles/Cell.module.css";
 
 type CellProps = {
   cellData: CellData;
-  onClick: (row: number, column: number) => void;
+  onClick: (row: number, column: number, e: React.MouseEvent) => void;
 };
 
 const Cell = ({ cellData, onClick }: CellProps) => {
 
     // const [clicked, setClicked] = useState<boolean>(false);
 
-  const handleClick = (): void => {
+  const handleClick = (e: React.MouseEvent): void => {
+    
     console.log("CLICKED");
 
     if (cellData.revealed) {
       return;
     }
 
-    onClick(cellData.row, cellData.column);
+    onClick(cellData.row, cellData.column, e);
   };
 
   // Code that handles how the cell is rendered
@@ -56,7 +57,10 @@ const Cell = ({ cellData, onClick }: CellProps) => {
   return (
     <div
       className={className}
-      onClick={handleClick}
+      onMouseDown={(e) => {
+        handleClick(e);
+      }}
+      onContextMenu={(e) => e.preventDefault()}
       data-count={cellData.adjacentMineCount || undefined}
     >
       {content}

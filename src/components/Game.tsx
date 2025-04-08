@@ -73,7 +73,7 @@ const Game = () => {
         </button>
 
         <div className="mt-4 border-2 border-zinc-300 dark:border-zinc-700 p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900">
-          <Board rows={rows} columns={columns} mineCount={mines} restart={restart} />
+          <Board rows={rows} columns={columns} mineCount={mines} restart={restart} setRestart={setRestart}/>
         </div>
       </div>
     </div>

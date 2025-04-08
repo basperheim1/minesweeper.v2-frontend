@@ -1,3 +1,6 @@
+import { Dispatch, SetStateAction } from "react";
+
+
 export type CellData = {
 
     // Static
@@ -31,6 +34,7 @@ export type BoardData = {
     columns: number; 
     mineCount: number; 
     restart: number; 
+    setRestart: Dispatch<SetStateAction<number>>;
 };
 
 export type SettingsData = {

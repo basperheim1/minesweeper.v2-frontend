@@ -5,6 +5,8 @@ import Cell from "./Cell"
 import { CellData, RuleData, BoardData } from "@/types/types";
 import { decode, encode } from "./Util";
 import styles from "../styles/Board.module.css"
+import "@fontsource/press-start-2p";
+
 
 
 const generateBoard = (rows: number, columns: number): CellData[][] => {
@@ -48,7 +50,7 @@ const generateBoard = (rows: number, columns: number): CellData[][] => {
 }
 
 
-const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
+const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setRestart}) => {
 
     // Static 
     const cellCount: number = rows * columns;
@@ -65,10 +67,19 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
     // State variables for win / loss 
     const [continuePlaying, setContinuePlaying] = useState<boolean>(true);
     const [lost, setLost] = useState<boolean>(false);
+    const [time, setTime] = useState<number>(0);
+    const [timerActive, setTimerActive] = useState<boolean>(false);
 
     // Board 
     const [board, setBoard] = useState<CellData[][]>([]);
 
+    // Flags
+    const [flags, setFlags] = useState<number>(mineCount); 
+
+    // Whenver the parameter restart changes value then we will 
+    // call this function to regenerate state variables including 
+    // the board itself. Essentially, it sets the state back to 
+    // zero, where nothing has been pressed
     useEffect(() => {
         const newBoard = generateBoard(rows, columns);
         setBoard(newBoard);
@@ -79,7 +90,23 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
         setAmassedRisk(0);
         setLost(false);
         setContinuePlaying(true);
+        setTimerActive(false);
+        setTime(0);
+        setFlags(0);
       }, [restart]);
+
+    // Hook to increment the time, if we should be doing so
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+
+        if (timerActive && time < 999){
+            interval = setInterval(() => {
+                setTime((t) => t + 1);
+            }, 1000);
+        }
+
+        return () => clearInterval(interval);
+    }, [timerActive])
       
 
     const cloneBoard = (board: CellData[][]): CellData[][] =>{
@@ -368,10 +395,24 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
         return rules; 
     }
 
-    const clickCell = (row: number, column: number) => {
+    const clickCell = (row: number, column: number, e: React.MouseEvent) => {
 
         
         let clickedCell: CellData = board[row][column];
+
+        // User is simply flagging a cell 
+        if (e.button !== 0){
+
+            if (clickedCell.flagged){
+                setFlags(flags => flags - 1);
+            }
+            else{
+                setFlags(flags => flags + 1); 
+            }
+
+            clickedCell.flagged = !clickedCell.flagged; 
+            return; 
+        }
 
         clickedCell.clicked = true; 
 
@@ -385,6 +426,7 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
         // First click 
         if (!clickedFirstCell){
             setClickedFirstCell(true); 
+            setTimerActive(true); 
 
             let freshBoard = generateBoard(rows, columns);
             freshBoard = addMines(freshBoard, mineCount, row, column);
@@ -409,6 +451,7 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
             setLost(true);
             setContinuePlaying(false);
             revealAll();
+            setTimerActive(false);
             return; 
         }
 
@@ -420,6 +463,7 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
             setLost(false);
             setContinuePlaying(false);
             revealAll();
+            setTimerActive(false);
             return; 
         }
 
@@ -485,17 +529,36 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
     }
 
     return (
-        <div className={styles.board}>
-            {board.map((row, rowIndex) => (
-                <div key={`row-${rowIndex}`} className={styles.boardRow}>
-                    {
-                        row.map((cell) => (
-                            <Cell key={cell.encodedValue} cellData={cell} onClick={clickCell}/>
-                        ))
-                    }
-                </div>
-            ))}
+        <div className="board">
+        
+            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-zinc-200 dark:bg-zinc-800 rounded-md shadow">
+            <span className="text-lg font-mono text-red-600 dark:text-red-400">
+                Mines Left: {mineCount - flags}
+            </span>
 
+            <button
+                onClick={() => setRestart(x => x+1)} // or use the restart system if you'd prefer
+                className="px-3 py-1 rounded bg-yellow-300 hover:bg-yellow-400 text-black font-bold shadow"
+            >
+                😊
+            </button>
+
+            <span className="text-lg font-mono text-blue-600 dark:text-blue-400">
+                Time: {time}s
+            </span>
+            </div>
+                <div className={styles.board}>
+                    {board.map((row, rowIndex) => (
+                        <div key={`row-${rowIndex}`} className={styles.boardRow}>
+                            {
+                                row.map((cell) => (
+                                    <Cell key={cell.encodedValue} cellData={cell} onClick={clickCell}/>
+                                ))
+                            }
+                        </div>
+                    ))}
+
+                </div>
         </div>
     )
 }
