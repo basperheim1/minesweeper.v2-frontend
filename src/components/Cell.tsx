@@ -1,5 +1,3 @@
-import { encode } from "./Util";
-import React, { useState } from "react";
 import { CellData } from "@/types/types";
 import styles from "../styles/Cell.module.css";
 
@@ -10,7 +8,7 @@ type CellProps = {
 
 const Cell = ({ cellData, onClick }: CellProps) => {
 
-    const [clicked, setClicked] = useState<boolean>(false);
+    // const [clicked, setClicked] = useState<boolean>(false);
 
   const handleClick = (): void => {
     console.log("CLICKED");
@@ -19,7 +17,6 @@ const Cell = ({ cellData, onClick }: CellProps) => {
       return;
     }
 
-    setClicked(true);
     onClick(cellData.row, cellData.column);
   };
 
@@ -27,13 +24,13 @@ const Cell = ({ cellData, onClick }: CellProps) => {
   let content: React.ReactNode = "";
 
   if (cellData.revealed) {
-    if (cellData.isMine && !clicked) {
+    if (cellData.isMine && !cellData.clicked) {
         content = <img 
         src="/mine.png"
         alt="flag"
         className={styles.flagIcon}
     />;
-    } else if (cellData.isMine && clicked){
+    } else if (cellData.isMine && cellData.clicked){
         content = <img 
         src="/clicked_mine.png"
         alt="flag"
@@ -54,7 +51,7 @@ const Cell = ({ cellData, onClick }: CellProps) => {
 
   let className = styles.cell;
   if (cellData.revealed) className += ` ${styles.revealed}`;
-  if (cellData.flagged) className += ` ${styles.flagged}`;
+  if (cellData.flagged) className += ` ${styles.flagged}`; 
 
   return (
     <div

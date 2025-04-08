@@ -2,15 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import Cell from "./Cell"
-import { CellData, RuleData } from "@/types/types";
+import { CellData, RuleData, BoardData } from "@/types/types";
 import { decode, encode } from "./Util";
 import styles from "../styles/Board.module.css"
 
-type BoardProps = {
-    rows: number; 
-    columns: number; 
-    mineCount: number; 
-}
 
 const generateBoard = (rows: number, columns: number): CellData[][] => {
     let board: CellData[][] = [];
@@ -40,8 +35,8 @@ const generateBoard = (rows: number, columns: number): CellData[][] => {
                 flagged: false,
                 adjacentUndeterminedCellCount: 0,
                 adjacentUndeterminedMineCount: 0,
-                isDetermined: false
-
+                isDetermined: false,
+                clicked: false
 
             });
         }
@@ -52,9 +47,8 @@ const generateBoard = (rows: number, columns: number): CellData[][] => {
     return board; 
 }
 
-  
 
-const Board: React.FC<BoardProps> = ({rows, columns, mineCount}) => {
+const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart}) => {
 
     // Static 
     const cellCount: number = rows * columns;
@@ -73,8 +67,20 @@ const Board: React.FC<BoardProps> = ({rows, columns, mineCount}) => {
     const [lost, setLost] = useState<boolean>(false);
 
     // Board 
-    const [board, setBoard] = useState<CellData[][]>(() => generateBoard(rows, columns));
+    const [board, setBoard] = useState<CellData[][]>([]);
 
+    useEffect(() => {
+        const newBoard = generateBoard(rows, columns);
+        setBoard(newBoard);
+        setClickedFirstCell(false);
+        setUncoveredCellCount(0);
+        setUndeterminedMineCount(mineCount);
+        setCellsWithNoInformation(rows * columns);
+        setAmassedRisk(0);
+        setLost(false);
+        setContinuePlaying(true);
+      }, [restart]);
+      
 
     const cloneBoard = (board: CellData[][]): CellData[][] =>{
 
@@ -367,6 +373,8 @@ const Board: React.FC<BoardProps> = ({rows, columns, mineCount}) => {
         
         let clickedCell: CellData = board[row][column];
 
+        clickedCell.clicked = true; 
+
         
         if (clickedCell.revealed){
             return; 
@@ -433,6 +441,7 @@ const Board: React.FC<BoardProps> = ({rows, columns, mineCount}) => {
                 cell.isDetermined = true; 
                 cell.someInformation = true; 
                 cell.probability = Number(cell.isMine);
+                cell.clicked = true; 
             
 
                 if (cell.adjacentMineCount === 0){
@@ -474,10 +483,6 @@ const Board: React.FC<BoardProps> = ({rows, columns, mineCount}) => {
         return; 
 
     }
-
-    // useEffect(() => {
-    //     generateBoard(rows, columns); 
-    // }, []);
 
     return (
         <div className={styles.board}>

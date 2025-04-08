@@ -17,10 +17,25 @@ export type CellData = {
     adjacentUndeterminedMineCount: number; 
     adjacentUndeterminedCellCount: number; 
     isDetermined: boolean; 
+    clicked: boolean; 
 
 };
 
 export type RuleData = {
     numUndeterminedMines: number; 
     undeterminedCells: string[];
+};
+
+export type BoardData = {
+    rows: number; 
+    columns: number; 
+    mineCount: number; 
+    restart: number; 
+};
+
+export type SettingsData = {
+    rows: number; 
+    columns: number; 
+    mines: number; 
+    applySettings: (rows: number, columns: number, mines: number) => void;
 };
