@@ -38,7 +38,11 @@ const Cell = ({ cellData, onClick, determinedFirstProbability }: CellProps) => {
   // Code that handles how the cell is rendered
   let content: React.ReactNode = "";
 
-  if (cellData.revealed) {
+  if (cellData.flagged) {
+    content = <img src="/flag.png" alt="flag" className={styles.flagIcon} />;
+  }
+
+  else if (cellData.revealed) {
     if (cellData.isMine && !cellData.clicked) {
       content = <img src="/mine.png" alt="flag" className={styles.flagIcon} />;
     } else if (cellData.isMine && cellData.clicked) {
@@ -48,9 +52,7 @@ const Cell = ({ cellData, onClick, determinedFirstProbability }: CellProps) => {
     } else if (cellData.adjacentMineCount > 0) {
       content = cellData.adjacentMineCount.toString();
     }
-  } else if (cellData.flagged) {
-    content = <img src="/flag.png" alt="flag" className={styles.flagIcon} />;
-  }
+  } 
 
   let className = styles.cell;
   if (cellData.revealed) className += ` ${styles.revealed}`;
