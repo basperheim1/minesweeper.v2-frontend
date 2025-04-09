@@ -26,14 +26,14 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Rows: {currentRows}
         </label>
-        <Slider min={1} max={24} step={1} value={localRows} onValueChange={setLocalRows} />
+        <Slider min={4} max={24} step={1} value={localRows} onValueChange={setLocalRows} />
       </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Columns: {currentColumns}
         </label>
-        <Slider min={1} max={30} step={1} value={localColumns} onValueChange={setLocalColumns} />
+        <Slider min={6} max={30} step={1} value={localColumns} onValueChange={setLocalColumns} />
       </div>
 
       <div className="space-y-2">

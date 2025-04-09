@@ -2,11 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import Cell from "./Cell"
-import { CellData, RuleData, BoardData } from "@/types/types";
+import { CellData, RuleData, BoardData, SolverRequest } from "@/types/types";
 import { decode, encode } from "./Util";
 import styles from "../styles/Board.module.css"
 import "@fontsource/press-start-2p";
+import BoardHeader from "./BoardHeader";
 
+
+const API_URL: string = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/';
 
 
 const generateBoard = (rows: number, columns: number): CellData[][] => {
@@ -62,6 +65,7 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
     const [uncoveredCellCount, setUncoveredCellCount] = useState<number>(0);
     const [amassedRisk, setAmassedRisk] = useState<number>(0);
     const [clickedFirstCell, setClickedFirstCell] = useState<boolean>(false);
+    const [determinedFirstProbability, setDeterminedFirstProbability] = useState<boolean>(false);
 
 
     // State variables for win / loss 
@@ -76,23 +80,13 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
     // Flags
     const [flags, setFlags] = useState<number>(mineCount); 
 
+
     // Whenver the parameter restart changes value then we will 
     // call this function to regenerate state variables including 
     // the board itself. Essentially, it sets the state back to 
     // zero, where nothing has been pressed
     useEffect(() => {
-        const newBoard = generateBoard(rows, columns);
-        setBoard(newBoard);
-        setClickedFirstCell(false);
-        setUncoveredCellCount(0);
-        setUndeterminedMineCount(mineCount);
-        setCellsWithNoInformation(rows * columns);
-        setAmassedRisk(0);
-        setLost(false);
-        setContinuePlaying(true);
-        setTimerActive(false);
-        setTime(0);
-        setFlags(0);
+        resetState();
       }, [restart]);
 
     // Hook to increment the time, if we should be doing so
@@ -107,6 +101,22 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
 
         return () => clearInterval(interval);
     }, [timerActive])
+
+    const resetState = () => {
+        const newBoard = generateBoard(rows, columns);
+        setBoard(newBoard);
+        setClickedFirstCell(false);
+        setUncoveredCellCount(0);
+        setUndeterminedMineCount(mineCount);
+        setCellsWithNoInformation(rows * columns);
+        setAmassedRisk(0);
+        setLost(false);
+        setContinuePlaying(true);
+        setTimerActive(false);
+        setTime(0);
+        setFlags(0);
+        setDeterminedFirstProbability(false);
+    }
       
 
     const cloneBoard = (board: CellData[][]): CellData[][] =>{
@@ -273,28 +283,39 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
             }
     }
 
-    const updateProbabilities = (probabilities: { [key: string]: number }, updatedBoard: CellData[][]): void => {
+    const updateProbabilities = (probabilities: { [key: string]: number }, board: CellData[][]): void => {
+
+        const updatedBoard: CellData[][] = cloneBoard(board);
         const ENM: string = "expected_number_of_mines"; 
 
         let expectedMinesNotYetDetermined: number = probabilities[ENM];
 
         for (const cellEncodedValue in probabilities){
-            const [row, column] = decode(cellEncodedValue, columns);
 
-            const cell: CellData = board[row][column];
-            cell.probability = probabilities[cellEncodedValue];
-
-            if (probabilities[cellEncodedValue] === 0){
-                cell.isDetermined = true;
-                updateAdjacentCells(row, column, false, false, false, updatedBoard); 
+            if (cellEncodedValue !== ENM){
+                console.log(cellEncodedValue)
+                const [row, column] = decode(cellEncodedValue, columns);
+    
+                console.log("row: ", row)
+                console.log("column", column)
+    
+                const cell: CellData = updatedBoard[row][column];
+                cell.probability = probabilities[cellEncodedValue];
+    
+                if (probabilities[cellEncodedValue] === 0){
+                    cell.isDetermined = true;
+                    updateAdjacentCells(row, column, false, false, false, updatedBoard); 
+                }
+    
+                else if (probabilities[cellEncodedValue] === 1){
+                    cell.isDetermined = true; 
+                    setUndeterminedMineCount(undeterminedMineCount => undeterminedMineCount - 1);
+                    updateAdjacentCells(row, column, true, false, false, updatedBoard); 
+                    expectedMinesNotYetDetermined -= 1; 
+                }
             }
 
-            else if (probabilities[cellEncodedValue] === 1){
-                cell.isDetermined = true; 
-                setUndeterminedMineCount(undeterminedMineCount => undeterminedMineCount - 1);
-                updateAdjacentCells(row, column, true, false, false, updatedBoard); 
-                expectedMinesNotYetDetermined -= 1; 
-            }
+            
         }
 
         if (cellsWithNoInformation > 0){
@@ -302,12 +323,14 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
 
             for (let row = 0; row < rows; row++){
                 for (let column = 0; column < columns; column++){
-                    if (!board[row][column].someInformation){
-                        board[row][column].probability = probabilityNoInformationCell;
+                    if (!updatedBoard[row][column].someInformation){
+                        updatedBoard[row][column].probability = probabilityNoInformationCell;
                     }
                 }
             }
         }
+
+        setBoard(updatedBoard);
 
         return; 
     }
@@ -353,49 +376,65 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
         to see if a cell is undetermined before adding it to the list which will 
         ultimately make the rule. 
     */
-    const generateRules = (): RuleData[] => {
+    const generateRules = (localBoard: CellData[][]): RuleData[] => {
         let rules: RuleData[] = [];
 
         for (let row = 0; row < rows; row++){
             for (let column = 0; column < columns; column++){
 
-                let currentCell: CellData = board[row][column];
+                let currentCell: CellData = localBoard[row][column];
+                if (currentCell.revealed && !currentCell.isMine){
 
-                let adjacentUndeterminedCells: string[] = []
+                    let adjacentUndeterminedCells: string[] = []
 
-                const deltas: number[] = [-1, 0, 1];
+                    const deltas: number[] = [-1, 0, 1];
 
-                for (const dr of deltas) {
-                    for (const dc of deltas) {
-                        const nr = row + dr;
-                        const nc = column + dc;
+                    for (const dr of deltas) {
+                        for (const dc of deltas) {
+                            const nr = row + dr;
+                            const nc = column + dc;
 
-                        // Check bounds
-                        if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length) {
-                            
-                            const adjacentCell: CellData = board[nr][nc];
-                            if (!adjacentCell.isDetermined){
-                                adjacentUndeterminedCells.push(adjacentCell.encodedValue);
+                            // Check bounds
+                            if (nr >= 0 && nr < localBoard.length && nc >= 0 && nc < localBoard[0].length) {
+                                
+                                const adjacentCell: CellData = localBoard[nr][nc];
+                                if (!adjacentCell.isDetermined){
+                                    adjacentUndeterminedCells.push(adjacentCell.encodedValue);
+                                }
                             }
                         }
                     }
+
+                    // There are some cells around the revealed cell that are not yet determined, 
+                    // meaning that we have a rule
+                    if (adjacentUndeterminedCells.length > 0){
+                        rules.push({
+                            num_undetermined_mines: currentCell.adjacentUndeterminedMineCount,
+                            undetermined_cells: adjacentUndeterminedCells
+                        })
+                    }
+
                 }
 
-                // There are some cells around the revealed cell that are not yet determined, 
-                // meaning that we have a rule
-                if (adjacentUndeterminedCells.length > 0){
-                    rules.push({
-                        numUndeterminedMines: currentCell.adjacentUndeterminedMineCount,
-                        undeterminedCells: adjacentUndeterminedCells
-                    })
-                }
+                
             }
         }
 
         return rules; 
     }
 
-    const clickCell = (row: number, column: number, e: React.MouseEvent) => {
+    const generateRequest = (board: CellData[][]): SolverRequest => {
+        const rules: RuleData[] = generateRules(board);
+        const solverRequest: SolverRequest = {
+            rules: rules,
+            undetermined_mine_count: undeterminedMineCount,
+            num_uninformed_cells: cellsWithNoInformation
+        }
+
+        return solverRequest
+    }
+
+    const clickCell = async (row: number, column: number, e: React.MouseEvent) => {
 
         
         let clickedCell: CellData = board[row][column];
@@ -413,6 +452,9 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
             clickedCell.flagged = !clickedCell.flagged; 
             return; 
         }
+
+        // If the cell is flagged and they left click it, nothing should happen 
+        if (e.button === 0 && clickedCell.flagged) return; 
 
         clickedCell.clicked = true; 
 
@@ -480,6 +522,7 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
 
                 if (cell.revealed) continue; 
 
+                setUncoveredCellCount(x => x+1);
                 updateAdjacentCells(r, c, cell.isMine, true, cell.isDetermined, updatedBoard);
                 cell.revealed = true; 
                 cell.isDetermined = true; 
@@ -523,6 +566,34 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
 
         setBoard(updatedBoard);
 
+        if (uncoveredCellCount === safeCount){
+            setLost(false);
+            setContinuePlaying(false);
+            revealAll();
+            setTimerActive(false);
+            return; 
+        }
+
+        // Although the board has been updated, it has not added the probabilities, something that we now need to do
+        const requestData: SolverRequest = generateRequest(updatedBoard);
+
+        console.log(requestData);
+        console.log(API_URL);
+
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        console.log(response)
+
+        const frequencies = await response.json()
+        console.log("Frequencies from the server", frequencies )
+        updateProbabilities(frequencies, updatedBoard);
+        setDeterminedFirstProbability(true); 
 
         return; 
 
@@ -530,35 +601,25 @@ const Board: React.FC<BoardData> = ({rows, columns, mineCount, restart, setResta
 
     return (
         <div className="board">
-        
-            <div className="flex justify-between items-center px-4 py-2 mb-2 bg-zinc-200 dark:bg-zinc-800 rounded-md shadow">
-            <span className="text-lg font-mono text-red-600 dark:text-red-400">
-                Mines Left: {mineCount - flags}
-            </span>
-
-            <button
-                onClick={() => setRestart(x => x+1)} // or use the restart system if you'd prefer
-                className="px-3 py-1 rounded bg-yellow-300 hover:bg-yellow-400 text-black font-bold shadow"
-            >
-                😊
-            </button>
-
-            <span className="text-lg font-mono text-blue-600 dark:text-blue-400">
-                Time: {time}s
-            </span>
-            </div>
+        { board.length > 0 && (
+        <>
+            <BoardHeader undeterminedMines={mineCount-flags} time={time} continuePlaying={continuePlaying} lost={lost} onReset={resetState}/>
                 <div className={styles.board}>
                     {board.map((row, rowIndex) => (
                         <div key={`row-${rowIndex}`} className={styles.boardRow}>
                             {
                                 row.map((cell) => (
-                                    <Cell key={cell.encodedValue} cellData={cell} onClick={clickCell}/>
+                                    <Cell key={cell.encodedValue} cellData={cell} onClick={clickCell} determinedFirstProbability={determinedFirstProbability}/>
                                 ))
                             }
                         </div>
                     ))}
 
                 </div>
+                
+                </>
+                )}
+            
         </div>
     )
 }

@@ -59,12 +59,11 @@ const Game = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-start p-6 gap-6 w-full z-0 relative">
-        <h1 className="text-3xl font-bold text-zinc-800 dark:text-zinc-100">Minesweeper</h1>
 
         {/* Hamburger Menu */}
         <button
           onClick={() => setShowSettings(true)}
-          className="absolute top-4 right-4 z-30 flex flex-col justify-center items-center w-10 h-10 space-y-1 group"
+          className="fixed top-4 right-4 z-50 flex flex-col justify-center items-center w-10 h-10 space-y-1 group"
           aria-label="Open Settings"
         >
           <span className="w-6 h-0.5 bg-zinc-700 dark:bg-zinc-200 transition-all group-hover:w-7" />

@@ -25,9 +25,16 @@ export type CellData = {
 };
 
 export type RuleData = {
-    numUndeterminedMines: number; 
-    undeterminedCells: string[];
+    num_undetermined_mines: number; 
+    undetermined_cells: string[];
 };
+
+export type SolverRequest = {
+    rules: RuleData[];
+    undetermined_mine_count: number;
+    num_uninformed_cells: number; 
+    
+}
 
 export type BoardData = {
     rows: number; 
