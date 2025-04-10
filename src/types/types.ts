@@ -42,6 +42,7 @@ export type BoardData = {
     mineCount: number; 
     restart: number; 
     setRestart: Dispatch<SetStateAction<number>>;
+    showProbability: boolean; 
 };
 
 export type SettingsData = {

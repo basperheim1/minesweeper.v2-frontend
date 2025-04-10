@@ -12,6 +12,8 @@ import { request } from "http";
 const API_URL: string =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/";
 
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 const generateBoard = (rows: number, columns: number): CellData[][] => {
   let board: CellData[][] = [];
 
@@ -54,6 +56,7 @@ const Board: React.FC<BoardData> = ({
   mineCount,
   restart,
   setRestart,
+  showProbability,
 }) => {
   // Static
   const cellCount: number = rows * columns;
@@ -77,10 +80,19 @@ const Board: React.FC<BoardData> = ({
   const [timerActive, setTimerActive] = useState<boolean>(false);
 
   // Board
-  const [board, setBoard] = useState<CellData[][]>([]);
+  const [board, setBoard] = useState<CellData[][]>(() => {
+    console.log("85");
+    return generateBoard(rows, columns);
+  });
 
   // Flags
   const [flags, setFlags] = useState<number>(mineCount);
+
+  // Probability toggle
+  const [keepGoingAI, setKeepGoingAI] = useState<number>(0);
+  const [stopAI, setStopAI] = useState<boolean>(true);
+  const [stopEverything, setStopEverything] = useState<boolean>(true);
+  const [AISolving, setAISolving] = useState<boolean>(false);
 
   // Whenver the parameter restart changes value then we will
   // call this function to regenerate state variables including
@@ -88,7 +100,13 @@ const Board: React.FC<BoardData> = ({
   // zero, where nothing has been pressed
   useEffect(() => {
     resetState();
-  }, [restart]);
+  }, [restart, stopEverything]);
+
+  useEffect(() => {
+    playGameAI()
+  }, [keepGoingAI])
+
+
 
   // Hook to increment the time, if we should be doing so
   useEffect(() => {
@@ -104,6 +122,7 @@ const Board: React.FC<BoardData> = ({
   }, [timerActive]);
 
   const resetState = () => {
+    console.log("Line 113");
     const newBoard = generateBoard(rows, columns);
     setBoard(newBoard);
     setClickedFirstCell(false);
@@ -117,6 +136,8 @@ const Board: React.FC<BoardData> = ({
     setTime(0);
     setFlags(0);
     setDeterminedFirstProbability(false);
+    setKeepGoingAI(0);
+    setAISolving(false);
   };
 
   const cloneBoard = (board: CellData[][]): CellData[][] => {
@@ -175,14 +196,12 @@ const Board: React.FC<BoardData> = ({
 
   // Reveal all of the cells
   const revealAll = (board: CellData[][]): void => {
-
     const updatedBoard = cloneBoard(board);
 
     for (let row = 0; row < rows; row++) {
       for (let column = 0; column < columns; column++) {
         updatedBoard[row][column].revealed = true;
         updatedBoard[row][column].flagged = false;
-
       }
     }
 
@@ -194,8 +213,8 @@ const Board: React.FC<BoardData> = ({
 
     for (let row = 0; row < rows; row++) {
       for (let column = 0; column < columns; column++) {
-        if (updatedBoard[row][column].isMine){
-            updatedBoard[row][column].flagged = true;
+        if (updatedBoard[row][column].isMine) {
+          updatedBoard[row][column].flagged = true;
         }
       }
     }
@@ -203,7 +222,7 @@ const Board: React.FC<BoardData> = ({
     setFlags(mineCount);
 
     setBoard(updatedBoard);
-  }
+  };
 
   /*
         This function counts the number of mines and cells 
@@ -233,7 +252,8 @@ const Board: React.FC<BoardData> = ({
               nr >= 0 &&
               nr < newBoard.length &&
               nc >= 0 &&
-              nc < newBoard[0].length && (dr !== 0 || dc !== 0)
+              nc < newBoard[0].length &&
+              (dr !== 0 || dc !== 0)
             ) {
               cellCount++;
               if (newBoard[nr][nc].isMine) mineCount++;
@@ -281,7 +301,6 @@ const Board: React.FC<BoardData> = ({
   ): number => {
     const deltas: number[] = [-1, 0, 1];
 
-
     //Click all of the adjacent cells as well
     for (const dr of deltas) {
       for (const dc of deltas) {
@@ -309,7 +328,7 @@ const Board: React.FC<BoardData> = ({
       }
     }
 
-    return currentCellsWithNoInformation
+    return currentCellsWithNoInformation;
   };
 
   const updateProbabilities = (
@@ -328,20 +347,35 @@ const Board: React.FC<BoardData> = ({
       if (cellEncodedValue !== ENM) {
         const [row, column] = decode(cellEncodedValue, columns);
 
-
         const cell: CellData = updatedBoard[row][column];
         cell.probability = probabilities[cellEncodedValue];
 
         if (probabilities[cellEncodedValue] === 0) {
           cell.isDetermined = true;
-          updateAdjacentCells(row, column, false, false, false, updatedBoard, newCellsWithNoInformation);
+          updateAdjacentCells(
+            row,
+            column,
+            false,
+            false,
+            false,
+            updatedBoard,
+            newCellsWithNoInformation
+          );
         } else if (probabilities[cellEncodedValue] === 1) {
           cell.isDetermined = true;
-          localUndeterminedMineCount -= 1; 
-        //   setUndeterminedMineCount(
-        //     (undeterminedMineCount) => undeterminedMineCount - 1
-        //   );
-          updateAdjacentCells(row, column, true, false, false, updatedBoard, newCellsWithNoInformation);
+          localUndeterminedMineCount -= 1;
+          //   setUndeterminedMineCount(
+          //     (undeterminedMineCount) => undeterminedMineCount - 1
+          //   );
+          updateAdjacentCells(
+            row,
+            column,
+            true,
+            false,
+            false,
+            updatedBoard,
+            newCellsWithNoInformation
+          );
           expectedMinesNotYetDetermined -= 1;
         }
       }
@@ -350,11 +384,6 @@ const Board: React.FC<BoardData> = ({
     setUndeterminedMineCount(localUndeterminedMineCount);
 
     if (cellsWithNoInformation > 0) {
-
-        console.log("Local undetermined mine count: ", localUndeterminedMineCount)
-        console.log("Expected mines not yet determined: ", expectedMinesNotYetDetermined)
-        console.log("Cells with no information: ", newCellsWithNoInformation)
-
       const probabilityNoInformationCell =
         (localUndeterminedMineCount - expectedMinesNotYetDetermined) /
         newCellsWithNoInformation;
@@ -369,17 +398,15 @@ const Board: React.FC<BoardData> = ({
       }
     }
 
-    console.log("Board with updated probabilities: ", updatedBoard)
     setBoard(updatedBoard);
 
     return;
   };
 
-  const getLowestProbabilityChoice = (): void => {
+  const getLowestProbabilityChoice = async (): Promise<[number, number]> => {
+    await delay(0);
     let probability: number = 1;
     let encodedCell: string = "";
-
-    const deltas: number[] = [-1, 0, 1];
 
     for (let row = 0; row < rows; row++) {
       for (let column = 0; column < columns; column++) {
@@ -394,7 +421,14 @@ const Board: React.FC<BoardData> = ({
       }
     }
 
+    const [row, column] = decode(encodedCell, columns);
+
+    console.log("row: ", row);
+    console.log("column: ", column);
+
     setAmassedRisk((amassedRisk) => amassedRisk + probability);
+
+    return [row, column];
   };
 
   /*
@@ -436,7 +470,8 @@ const Board: React.FC<BoardData> = ({
                 nr >= 0 &&
                 nr < localBoard.length &&
                 nc >= 0 &&
-                nc < localBoard[0].length && (dr !== 0 || dc !== 0)
+                nc < localBoard[0].length &&
+                (dr !== 0 || dc !== 0)
               ) {
                 const adjacentCell: CellData = localBoard[nr][nc];
                 if (!adjacentCell.isDetermined) {
@@ -472,59 +507,60 @@ const Board: React.FC<BoardData> = ({
     return solverRequest;
   };
 
+  // Will return true if the clicked cell resulted in the game terminating
   const clickCell = async (
     row: number,
     column: number,
     e: React.MouseEvent
-  ) => {
-
-    if (!continuePlaying) return; 
-    let clickedCell: CellData = board[row][column];
-    let numClickedCells: number = 0;
-
-    // User is simply flagging a cell
-    if (e.button !== 0) {
-
-      clickedCell.flagged = !clickedCell.flagged;
-      if (clickedCell.flagged) {
-        setFlags((flags) => flags - 1);
-      } else {
-        setFlags((flags) => flags + 1);
-      }
-
-      return;
-    }
-
-    // If the cell is flagged and they left click it, nothing should happen
-    if (e.button === 0 && clickedCell.flagged) return;
-
-    clickedCell.clicked = true;
-
-    if (clickedCell.revealed) {
-      return;
-    }
+  ): Promise<boolean> => {
+    delay(0);
+    console.log("Clicked first cell: ", clickedFirstCell);
 
     let updatedBoard: CellData[][];
+    let clickedCell: CellData;
 
     // First click
     if (!clickedFirstCell) {
       setClickedFirstCell(true);
       setTimerActive(true);
 
+      console.log("525");
+
       let freshBoard = generateBoard(rows, columns);
       freshBoard = addMines(freshBoard, mineCount, row, column);
       freshBoard = countBoardAdjacentMinesAndCells(freshBoard);
-
-      // setBoard(freshBoard);
-
       updatedBoard = freshBoard;
-
       clickedCell = updatedBoard[row][column];
     } else {
       updatedBoard = cloneBoard(board);
       clickedCell = updatedBoard[row][column];
     }
 
+    if (!continuePlaying) return false;
+    let numClickedCells: number = 0;
+
+    // User is simply flagging a cell
+    if (e.button !== 0) {
+      if (clickedCell.flagged) {
+        setFlags((flags) => flags - 1);
+      } else {
+        setFlags((flags) => flags + 1);
+      }
+      clickedCell.flagged = !clickedCell.flagged;
+
+      setBoard(updatedBoard);
+
+      return false;
+    }
+
+    // If the cell is flagged and they left click it, nothing should happen
+    if (e.button === 0 && clickedCell.flagged) return false;
+
+    clickedCell.clicked = true;
+
+    if (clickedCell.revealed) {
+      return false;
+    }
 
     // If the cell is a mine, end the game
     if (clickedCell.isMine) {
@@ -532,10 +568,11 @@ const Board: React.FC<BoardData> = ({
       setContinuePlaying(false);
       revealAll(updatedBoard);
       setTimerActive(false);
-      return;
+      setAISolving(false);
+      return true;
     }
 
-    let newCellsWithNoInformation = cellsWithNoInformation
+    let newCellsWithNoInformation = cellsWithNoInformation;
 
     if (clickedCell.adjacentMineCount === 0) {
       const stack: [number, number][] = [[row, column]];
@@ -590,7 +627,7 @@ const Board: React.FC<BoardData> = ({
         }
       }
     } else {
-        newCellsWithNoInformation = updateAdjacentCells(
+      newCellsWithNoInformation = updateAdjacentCells(
         row,
         column,
         clickedCell.isMine,
@@ -610,24 +647,22 @@ const Board: React.FC<BoardData> = ({
     }
 
     setBoard(updatedBoard);
-    console.log("Updated board: ", updatedBoard)
+    console.log("Updated board: ", updatedBoard);
 
-    if (uncoveredCellCount+numClickedCells === safeCount) {
+    if (uncoveredCellCount + numClickedCells === safeCount) {
       setLost(false);
       setContinuePlaying(false);
       revealAll(updatedBoard);
       revealFlags(updatedBoard);
       setTimerActive(false);
-      return;
+      setAISolving(false);
+      return true;
     }
 
-    setUncoveredCellCount(x => x + numClickedCells);
+    setUncoveredCellCount((x) => x + numClickedCells);
 
     // Although the board has been updated, it has not added the probabilities, something that we now need to do
     const requestData: SolverRequest = generateRequest(updatedBoard);
-
-    console.log("request: ",requestData.rules);
-
 
     const response = await fetch(API_URL, {
       method: "POST",
@@ -637,27 +672,204 @@ const Board: React.FC<BoardData> = ({
       body: JSON.stringify(requestData),
     });
 
-
     const frequencies = await response.json();
 
-    console.log("frequencies: ", frequencies);
+    console.log("CLicked first cell: ", clickedFirstCell);
+
     setCellsWithNoInformation(newCellsWithNoInformation);
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
     setDeterminedFirstProbability(true);
 
-    return;
+    return false;
+  };
+
+  const clickCellAI = async (
+    row: number,
+    column: number,
+  ): Promise<boolean> => {
+    delay(0);
+    console.log("Clicked first cell: ", clickedFirstCell);
+    if (!continuePlaying) return false;
+
+    let updatedBoard: CellData[][];
+    let clickedCell: CellData;
+
+    // First click
+    if (!clickedFirstCell) {
+      setClickedFirstCell(true);
+      setTimerActive(true);
+
+      console.log("525");
+
+      let freshBoard = generateBoard(rows, columns);
+      freshBoard = addMines(freshBoard, mineCount, row, column);
+      freshBoard = countBoardAdjacentMinesAndCells(freshBoard);
+      updatedBoard = freshBoard;
+      clickedCell = updatedBoard[row][column];
+    } else {
+      updatedBoard = cloneBoard(board);
+      clickedCell = updatedBoard[row][column];
+    }
+
+    let numClickedCells: number = 0;
+    clickedCell.clicked = true;
+
+    if (clickedCell.revealed) {
+      return false;
+    }
+
+    // If the cell is a mine, end the game
+    if (clickedCell.isMine) {
+      setLost(true);
+      setContinuePlaying(false);
+      revealAll(updatedBoard);
+      setTimerActive(false);
+      setAISolving(false);
+      return true;
+    }
+
+    let newCellsWithNoInformation = cellsWithNoInformation;
+
+    if (clickedCell.adjacentMineCount === 0) {
+      const stack: [number, number][] = [[row, column]];
+
+      while (stack.length > 0) {
+        const [r, c] = stack.pop()!;
+
+        const cell = updatedBoard[r][c];
+
+        if (cell.revealed) continue;
+
+        numClickedCells++;
+        newCellsWithNoInformation = updateAdjacentCells(
+          r,
+          c,
+          cell.isMine,
+          true,
+          cell.isDetermined,
+          updatedBoard,
+          newCellsWithNoInformation
+        );
+        cell.revealed = true;
+        cell.isDetermined = true;
+        cell.someInformation = true;
+        cell.probability = Number(cell.isMine);
+        cell.clicked = true;
+
+        if (cell.adjacentMineCount === 0) {
+          const deltas = [-1, 0, 1];
+
+          //Click all of the adjacent cells as well
+          for (const dr of deltas) {
+            for (const dc of deltas) {
+              const nr = r + dr;
+              const nc = c + dc;
+
+              // Check bounds
+              if (
+                nr >= 0 &&
+                nr < board.length &&
+                nc >= 0 &&
+                nc < board[0].length &&
+                (dr !== 0 || dc !== 0)
+              ) {
+                const neighbor: CellData = updatedBoard[nr][nc];
+                if (!neighbor.revealed) {
+                  stack.push([nr, nc]);
+                }
+              }
+            }
+          }
+        }
+      }
+    } else {
+      newCellsWithNoInformation = updateAdjacentCells(
+        row,
+        column,
+        clickedCell.isMine,
+        true,
+        clickedCell.isDetermined,
+        updatedBoard,
+        newCellsWithNoInformation
+      );
+
+      // Increment the number of uncovered cells
+      numClickedCells++;
+
+      clickedCell.revealed = true;
+      clickedCell.isDetermined = true;
+      clickedCell.someInformation = true;
+      clickedCell.probability = Number(clickedCell.isMine);
+    }
+
+    setBoard(updatedBoard);
+    console.log("Updated board: ", updatedBoard);
+
+    if (uncoveredCellCount + numClickedCells === safeCount) {
+      setLost(false);
+      setContinuePlaying(false);
+      revealAll(updatedBoard);
+      revealFlags(updatedBoard);
+      setTimerActive(false);
+      setAISolving(false);
+
+      return true;
+    }
+
+    setUncoveredCellCount((x) => x + numClickedCells);
+
+    // Although the board has been updated, it has not added the probabilities, something that we now need to do
+    const requestData: SolverRequest = generateRequest(updatedBoard);
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    const frequencies = await response.json();
+
+    console.log("CLicked first cell: ", clickedFirstCell);
+
+    setCellsWithNoInformation(newCellsWithNoInformation);
+    updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
+    setDeterminedFirstProbability(true);
+
+    return false;
+  };
+
+  const playGameAI = async () => {
+
+    if (!AISolving) return; 
+    const [row, column] = await getLowestProbabilityChoice();
+
+    await clickCellAI(row, column);
+
+
+    setKeepGoingAI(old => old+1);
+    // await new Promise(resolve => setTimeout(resolve, 200));
+
+
   };
 
   return (
     <div className="board">
       {board.length > 0 && (
         <>
+          <button onClick={() => {
+            setKeepGoingAI(x => x + 1);
+            setAISolving(true);
+          }}>Watch AI</button>
           <BoardHeader
             undeterminedMines={mineCount - flags}
             time={time}
             continuePlaying={continuePlaying}
             lost={lost}
-            onReset={resetState}
+            onReset={() => {
+              setStopEverything(x => !x);
+            }}
           />
           <div className={styles.board}>
             {board.map((row, rowIndex) => (
@@ -668,6 +880,8 @@ const Board: React.FC<BoardData> = ({
                     cellData={cell}
                     onClick={clickCell}
                     determinedFirstProbability={determinedFirstProbability}
+                    showProbability={showProbability}
+                    AISolving={AISolving}
                   />
                 ))}
               </div>

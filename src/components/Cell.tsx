@@ -5,14 +5,16 @@ type CellProps = {
   cellData: CellData;
   onClick: (row: number, column: number, e: React.MouseEvent) => void;
   determinedFirstProbability: boolean; 
+  showProbability: boolean; 
+  AISolving: boolean;
 };
 
-const Cell = ({ cellData, onClick, determinedFirstProbability }: CellProps) => {
+const Cell = ({ cellData, onClick, determinedFirstProbability, showProbability, AISolving }: CellProps) => {
 
   const handleClick = (e: React.MouseEvent): void => {
     console.log("CLICKED");
 
-    if (cellData.revealed) {
+    if (cellData.revealed || AISolving) {
       return;
     }
 
@@ -62,7 +64,7 @@ const Cell = ({ cellData, onClick, determinedFirstProbability }: CellProps) => {
     <div
       style={{
         backgroundColor:
-          !cellData.revealed && determinedFirstProbability
+          !cellData.revealed && determinedFirstProbability && showProbability
             ? getProbabilityColor(cellData.probability)
             : undefined,
       }}
