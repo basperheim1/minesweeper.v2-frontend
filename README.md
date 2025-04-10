@@ -38,11 +38,11 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 - Add winning ability (W)
 - Deploy 
-- Add beginner / intermediate / expert 
+- Add beginner / intermediate / expert (w)
 - Add hamburger in settings 
 - ReadMe
 - Add more settings? 
 - Click cell and everything around it is clicked 
-- Add textbox for custom board 
+- Add textbox for custom board (w)
 - Auto solve
 - Add my links

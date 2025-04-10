@@ -276,9 +276,11 @@ const Board: React.FC<BoardData> = ({
     isMine: boolean,
     clicked: boolean,
     previouslyDetermined: boolean,
-    updatedBoard: CellData[][]
-  ): void => {
+    updatedBoard: CellData[][],
+    currentCellsWithNoInformation: number
+  ): number => {
     const deltas: number[] = [-1, 0, 1];
+
 
     //Click all of the adjacent cells as well
     for (const dr of deltas) {
@@ -287,15 +289,13 @@ const Board: React.FC<BoardData> = ({
         const nc = column + dc;
 
         // Check bounds
-        if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length && (dr !== 0 || dc !== 0)) {
+        if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length) {
           const adjacentCell: CellData = updatedBoard[nr][nc];
 
           // Edits information status of the cell and of
           // overall board counter
           if (!adjacentCell.someInformation && clicked) {
-            setCellsWithNoInformation(
-              (cellsWithNoInformation) => cellsWithNoInformation - 1
-            );
+            currentCellsWithNoInformation--;
             adjacentCell.someInformation = true;
           }
 
@@ -308,11 +308,14 @@ const Board: React.FC<BoardData> = ({
         }
       }
     }
+
+    return currentCellsWithNoInformation
   };
 
   const updateProbabilities = (
     probabilities: { [key: string]: number },
-    board: CellData[][]
+    board: CellData[][],
+    newCellsWithNoInformation: number
   ): void => {
     const updatedBoard: CellData[][] = cloneBoard(board);
     const ENM: string = "expected_number_of_mines";
@@ -331,14 +334,14 @@ const Board: React.FC<BoardData> = ({
 
         if (probabilities[cellEncodedValue] === 0) {
           cell.isDetermined = true;
-          updateAdjacentCells(row, column, false, false, false, updatedBoard);
+          updateAdjacentCells(row, column, false, false, false, updatedBoard, newCellsWithNoInformation);
         } else if (probabilities[cellEncodedValue] === 1) {
           cell.isDetermined = true;
           localUndeterminedMineCount -= 1; 
         //   setUndeterminedMineCount(
         //     (undeterminedMineCount) => undeterminedMineCount - 1
         //   );
-          updateAdjacentCells(row, column, true, false, false, updatedBoard);
+          updateAdjacentCells(row, column, true, false, false, updatedBoard, newCellsWithNoInformation);
           expectedMinesNotYetDetermined -= 1;
         }
       }
@@ -350,11 +353,11 @@ const Board: React.FC<BoardData> = ({
 
         console.log("Local undetermined mine count: ", localUndeterminedMineCount)
         console.log("Expected mines not yet determined: ", expectedMinesNotYetDetermined)
-        console.log("Cells with no information: ", cellsWithNoInformation)
+        console.log("Cells with no information: ", newCellsWithNoInformation)
 
       const probabilityNoInformationCell =
         (localUndeterminedMineCount - expectedMinesNotYetDetermined) /
-        cellsWithNoInformation;
+        newCellsWithNoInformation;
 
       for (let row = 0; row < rows; row++) {
         for (let column = 0; column < columns; column++) {
@@ -532,6 +535,7 @@ const Board: React.FC<BoardData> = ({
       return;
     }
 
+    let newCellsWithNoInformation = cellsWithNoInformation
 
     if (clickedCell.adjacentMineCount === 0) {
       const stack: [number, number][] = [[row, column]];
@@ -544,13 +548,14 @@ const Board: React.FC<BoardData> = ({
         if (cell.revealed) continue;
 
         numClickedCells++;
-        updateAdjacentCells(
+        newCellsWithNoInformation = updateAdjacentCells(
           r,
           c,
           cell.isMine,
           true,
           cell.isDetermined,
-          updatedBoard
+          updatedBoard,
+          newCellsWithNoInformation
         );
         cell.revealed = true;
         cell.isDetermined = true;
@@ -585,13 +590,14 @@ const Board: React.FC<BoardData> = ({
         }
       }
     } else {
-      updateAdjacentCells(
+        newCellsWithNoInformation = updateAdjacentCells(
         row,
         column,
         clickedCell.isMine,
         true,
         clickedCell.isDetermined,
-        updatedBoard
+        updatedBoard,
+        newCellsWithNoInformation
       );
 
       // Increment the number of uncovered cells
@@ -635,7 +641,8 @@ const Board: React.FC<BoardData> = ({
     const frequencies = await response.json();
 
     console.log("frequencies: ", frequencies);
-    updateProbabilities(frequencies, updatedBoard);
+    setCellsWithNoInformation(newCellsWithNoInformation);
+    updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
     setDeterminedFirstProbability(true);
 
     return;
