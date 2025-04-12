@@ -910,7 +910,7 @@ const Board: React.FC<BoardData> = ({
               return; 
             }
 
-            if (!AISolvingRef.current){
+            if (!AISolvingRef.current && !continuePlaying){
 
               firstClickRef.current = true; 
               console.log("SET FIRST CLICK ")
