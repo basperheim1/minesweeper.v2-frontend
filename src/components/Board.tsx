@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Cell from "./Cell";
 import { CellData, RuleData, BoardData, SolverRequest } from "@/types/types";
 import { decode, encode } from "./Util";
@@ -69,7 +69,6 @@ const Board: React.FC<BoardData> = ({
     useState<number>(cellCount);
   const [uncoveredCellCount, setUncoveredCellCount] = useState<number>(0);
   const [amassedRisk, setAmassedRisk] = useState<number>(0);
-  const [clickedFirstCell, setClickedFirstCell] = useState<boolean>(false);
   const [determinedFirstProbability, setDeterminedFirstProbability] =
     useState<boolean>(false);
 
@@ -90,9 +89,11 @@ const Board: React.FC<BoardData> = ({
 
   // Probability toggle
   const [keepGoingAI, setKeepGoingAI] = useState<number>(0);
-  const [stopAI, setStopAI] = useState<boolean>(true);
   const [stopEverything, setStopEverything] = useState<boolean>(true);
-  const [AISolving, setAISolving] = useState<boolean>(false);
+  const AISolvingRef = useRef<boolean>(false);
+
+  // For first click 
+  const firstClickRef = useRef<boolean>(true); 
 
   // Whenver the parameter restart changes value then we will
   // call this function to regenerate state variables including
@@ -124,8 +125,9 @@ const Board: React.FC<BoardData> = ({
   const resetState = () => {
     console.log("Line 113");
     const newBoard = generateBoard(rows, columns);
+
+    console.log("setting board: 130")
     setBoard(newBoard);
-    setClickedFirstCell(false);
     setUncoveredCellCount(0);
     setUndeterminedMineCount(mineCount);
     setCellsWithNoInformation(rows * columns);
@@ -137,7 +139,9 @@ const Board: React.FC<BoardData> = ({
     setFlags(0);
     setDeterminedFirstProbability(false);
     setKeepGoingAI(0);
-    setAISolving(false);
+    AISolvingRef.current = false;
+    firstClickRef.current = true; 
+    // setAISolving(false);
   };
 
   const cloneBoard = (board: CellData[][]): CellData[][] => {
@@ -205,6 +209,7 @@ const Board: React.FC<BoardData> = ({
       }
     }
 
+    console.log("setting board: 212")
     setBoard(updatedBoard);
   };
 
@@ -220,6 +225,8 @@ const Board: React.FC<BoardData> = ({
     }
 
     setFlags(mineCount);
+
+    console.log("setting board: 229")
 
     setBoard(updatedBoard);
   };
@@ -398,13 +405,14 @@ const Board: React.FC<BoardData> = ({
       }
     }
 
+    console.log("setting board: 408")
+
     setBoard(updatedBoard);
 
     return;
   };
 
-  const getLowestProbabilityChoice = async (): Promise<[number, number]> => {
-    await delay(0);
+  const getLowestProbabilityChoice = (): [number, number] => {
     let probability: number = 1;
     let encodedCell: string = "";
 
@@ -514,14 +522,15 @@ const Board: React.FC<BoardData> = ({
     e: React.MouseEvent
   ): Promise<boolean> => {
     delay(0);
-    console.log("Clicked first cell: ", clickedFirstCell);
 
     let updatedBoard: CellData[][];
     let clickedCell: CellData;
 
     // First click
-    if (!clickedFirstCell) {
-      setClickedFirstCell(true);
+    if (firstClickRef.current) {
+
+      console.log("FIRST CLICK FIRST CLICK ")
+      firstClickRef.current = false; 
       setTimerActive(true);
 
       console.log("525");
@@ -548,6 +557,7 @@ const Board: React.FC<BoardData> = ({
       }
       clickedCell.flagged = !clickedCell.flagged;
 
+      console.log("setting board: 559")
       setBoard(updatedBoard);
 
       return false;
@@ -568,7 +578,8 @@ const Board: React.FC<BoardData> = ({
       setContinuePlaying(false);
       revealAll(updatedBoard);
       setTimerActive(false);
-      setAISolving(false);
+      // setAISolving(false);
+      AISolvingRef.current = false
       return true;
     }
 
@@ -646,6 +657,7 @@ const Board: React.FC<BoardData> = ({
       clickedCell.probability = Number(clickedCell.isMine);
     }
 
+    console.log("setting board: 658")
     setBoard(updatedBoard);
     console.log("Updated board: ", updatedBoard);
 
@@ -655,7 +667,8 @@ const Board: React.FC<BoardData> = ({
       revealAll(updatedBoard);
       revealFlags(updatedBoard);
       setTimerActive(false);
-      setAISolving(false);
+      // setAISolving(false);
+      AISolvingRef.current = false
       return true;
     }
 
@@ -674,7 +687,6 @@ const Board: React.FC<BoardData> = ({
 
     const frequencies = await response.json();
 
-    console.log("CLicked first cell: ", clickedFirstCell);
 
     setCellsWithNoInformation(newCellsWithNoInformation);
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
@@ -687,21 +699,27 @@ const Board: React.FC<BoardData> = ({
     row: number,
     column: number,
   ): Promise<boolean> => {
-    delay(0);
-    console.log("Clicked first cell: ", clickedFirstCell);
+
+    if (!AISolvingRef.current){
+      return true; 
+    }
+
     if (!continuePlaying) return false;
+
+    console.log("first click ref: ", firstClickRef.current)
 
     let updatedBoard: CellData[][];
     let clickedCell: CellData;
 
     // First click
-    if (!clickedFirstCell) {
-      setClickedFirstCell(true);
+    if (firstClickRef.current) {
+      console.log("FIRST CLICK FIRS TCLICK")
       setTimerActive(true);
+      firstClickRef.current = false;
 
       console.log("525");
 
-      let freshBoard = generateBoard(rows, columns);
+      let freshBoard: CellData[][] = generateBoard(rows, columns);
       freshBoard = addMines(freshBoard, mineCount, row, column);
       freshBoard = countBoardAdjacentMinesAndCells(freshBoard);
       updatedBoard = freshBoard;
@@ -724,7 +742,8 @@ const Board: React.FC<BoardData> = ({
       setContinuePlaying(false);
       revealAll(updatedBoard);
       setTimerActive(false);
-      setAISolving(false);
+      // setAISolving(false);
+      AISolvingRef.current = false
       return true;
     }
 
@@ -802,6 +821,7 @@ const Board: React.FC<BoardData> = ({
       clickedCell.probability = Number(clickedCell.isMine);
     }
 
+    console.log("setting board: 810")
     setBoard(updatedBoard);
     console.log("Updated board: ", updatedBoard);
 
@@ -811,7 +831,8 @@ const Board: React.FC<BoardData> = ({
       revealAll(updatedBoard);
       revealFlags(updatedBoard);
       setTimerActive(false);
-      setAISolving(false);
+      // setAISolving(false);
+      AISolvingRef.current = false
 
       return true;
     }
@@ -831,7 +852,14 @@ const Board: React.FC<BoardData> = ({
 
     const frequencies = await response.json();
 
-    console.log("CLicked first cell: ", clickedFirstCell);
+    if (!AISolvingRef.current){
+      console.log("WHAT THE FUCK WHAT THE FUCK")
+      return true; 
+    }
+
+
+    console.log("Ai solving ref: ", AISolvingRef.current)
+
 
     setCellsWithNoInformation(newCellsWithNoInformation);
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
@@ -842,8 +870,21 @@ const Board: React.FC<BoardData> = ({
 
   const playGameAI = async () => {
 
-    if (!AISolving) return; 
-    const [row, column] = await getLowestProbabilityChoice();
+    console.log("first click yes or no: ", firstClickRef.current)
+
+    console.log("Playing game AI")
+
+    if (!AISolvingRef.current) return; 
+
+    let row: number; 
+    let column: number; 
+    if (firstClickRef.current){
+      row = 0;
+      column = 0; 
+    }
+    else{
+      [row, column] = getLowestProbabilityChoice();
+    }
 
     await clickCellAI(row, column);
 
@@ -859,8 +900,25 @@ const Board: React.FC<BoardData> = ({
       {board.length > 0 && (
         <>
           <button onClick={() => {
+
+            if (AISolvingRef.current){
+              return; 
+            }
+
+            if (!continuePlaying  && firstClickRef){
+              console.log("need a board to do this");
+              return; 
+            }
+
+            if (!AISolvingRef.current){
+
+              firstClickRef.current = true; 
+              console.log("SET FIRST CLICK ")
+            } 
+
+
+            AISolvingRef.current = true
             setKeepGoingAI(x => x + 1);
-            setAISolving(true);
           }}>Watch AI</button>
           <BoardHeader
             undeterminedMines={mineCount - flags}
@@ -881,7 +939,7 @@ const Board: React.FC<BoardData> = ({
                     onClick={clickCell}
                     determinedFirstProbability={determinedFirstProbability}
                     showProbability={showProbability}
-                    AISolving={AISolving}
+                    AISolving={AISolvingRef.current}
                   />
                 ))}
               </div>

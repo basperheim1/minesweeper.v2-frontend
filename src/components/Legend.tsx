@@ -5,7 +5,7 @@ const ProbabilityLegend = () => {
     <div className="w-fit flex items-center rounded shadow overflow-hidden text-xs font-bold text-white">
       {/* SAFE box */}
       <div
-        className="w-14 h-[86px] flex items-center justify-center"
+        className="text-black h-[86px] flex items-center justify-center"
         style={{ backgroundColor: "hsl(120, 100%, 30%)" }}
       >
         SAFE
@@ -34,7 +34,7 @@ const ProbabilityLegend = () => {
 
       {/* MINE box */}
       <div
-        className="w-14 h-[86px] flex items-center justify-center"
+        className="text-black h-[86px] flex items-center justify-center"
         style={{ backgroundColor: "hsl(0, 100%, 45%)" }}
       >
         MINE
