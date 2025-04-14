@@ -12,7 +12,6 @@ import { request } from "http";
 const API_URL: string =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/";
 
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const generateBoard = (rows: number, columns: number): CellData[][] => {
   let board: CellData[][] = [];
@@ -192,7 +191,7 @@ const Board = forwardRef<SolverHandle, BoardData>(({
   };
 
   const cloneBoard = (board: CellData[][]): CellData[][] => {
-    console.log("cloning board ");
+    // console.log("cloning board ");
 
     return board.map((row) => row.map((cell) => ({ ...cell })));
   };
@@ -562,13 +561,28 @@ const Board = forwardRef<SolverHandle, BoardData>(({
     return solverRequest;
   };
 
+  const compareBoards = (localBoard: CellData[][]): boolean => {
+
+    if (localBoard.length != board.length) return false; 
+    if (localBoard[0].length != board[0].length) return false; 
+
+    for (let i = 0; i < board.length; i++){
+      for (let j = 0; j < board[0].length; j++){
+        if (localBoard[i][j].isMine != board[i][j].isMine ) return false; 
+      }
+    }
+
+    return true; 
+  }
+
   // Will return true if the clicked cell resulted in the game terminating
   const clickCell = async (
     row: number,
     column: number,
     e: React.MouseEvent
   ): Promise<boolean> => {
-    delay(0);
+    // console.log("Board clicked before: ", board)
+
 
     let updatedBoard: CellData[][];
     let clickedCell: CellData;
@@ -737,10 +751,13 @@ const Board = forwardRef<SolverHandle, BoardData>(({
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
     setDeterminedFirstProbability(true);
 
+    // console.log("Board: ", updatedBoard)
+
     return false;
   };
 
   const clickCellAI = async (row: number, column: number): Promise<boolean> => {
+
     if (!AISolvingRef.current) {
       return true;
     }
@@ -893,16 +910,26 @@ const Board = forwardRef<SolverHandle, BoardData>(({
 
     const frequencies = await response.json();
 
-    if (!AISolvingRef.current) {
+    // It is possible the user has reset the board, and therefore, the board has been 
+    // rest to one where no cells have ben clicked. In this case, we don't want to 
+    // call the functions below, as it would replace the new board with the stale one 
+    // from the previous round. 
+    if (firstClickRef.current) {
+      // console.log("We reset the board")
       // console.log("WHAT THE FUCK WHAT THE FUCK");
       return true;
     }
+
+    // if (!compareBoards(updatedBoard)) return true;
 
     // console.log("Ai solving ref: ", AISolvingRef.current);
 
     setCellsWithNoInformation(newCellsWithNoInformation);
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
     setDeterminedFirstProbability(true);
+
+    // console.log("Board: ", updatedBoard)
+
 
     return false;
   };

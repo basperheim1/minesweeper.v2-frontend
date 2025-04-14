@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Board from "./Board";
 import Settings from "./Settings";
 import HamburgerMenu from "./HamburgerMenu";
-import ProbabilityLegend from "./Legend";
 import MinesweeperHeader from "./MinesweeperHeader";
 import { SolverHandle } from "../types/types";
 
