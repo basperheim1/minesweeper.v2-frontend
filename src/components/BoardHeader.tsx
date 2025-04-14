@@ -4,13 +4,7 @@ import React from "react";
 import "@fontsource/press-start-2p";
 import styles from "../styles/BoardHeader.module.css";
 
-type BoardHeaderProps = {
-  undeterminedMines: number;
-  time: number;
-  continuePlaying: boolean;
-  lost: boolean;
-  onReset: () => void;
-};
+import { BoardHeaderProps } from "@/types/types";
 
 const formatDisplay = (val: number) =>
   String(Math.max(0, Math.min(999, Math.floor(val)))).padStart(3, "0");
@@ -18,13 +12,13 @@ const formatDisplay = (val: number) =>
 const BoardHeader: React.FC<BoardHeaderProps> = ({
   undeterminedMines,
   time,
-  continuePlaying,
+  gameOver,
   lost,
   onReset,
 }) => {
   let emoji: React.ReactNode = "";
 
-  if (continuePlaying) {
+  if (!gameOver) {
     emoji = <img src="/smiley.png" alt="flag" className={styles.emojiIcon} />;
   } else {
     if (lost) {

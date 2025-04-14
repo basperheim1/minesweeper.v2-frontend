@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, MutableRefObject, Ref, RefObject, SetStateAction } from "react";
 
 
 export type CellData = {
@@ -29,12 +29,31 @@ export type RuleData = {
     undetermined_cells: string[];
 };
 
+export type SolverHandle = {
+    clickSolve: () => void;
+};
+
+export type HeaderData = {
+    showProbability: boolean;
+    setShowProbability: Dispatch<SetStateAction<boolean>>;
+    AISolvingRef: RefObject<boolean>;
+    solverRef: RefObject<SolverHandle>;
+}
+
 export type SolverRequest = {
     rules: RuleData[];
     undetermined_mine_count: number;
     num_uninformed_cells: number; 
     
 }
+
+export type BoardHeaderProps = {
+  undeterminedMines: number;
+  time: number;
+  gameOver: boolean;
+  lost: boolean;
+  onReset: () => void;
+};
 
 export type BoardData = {
     rows: number; 
@@ -43,6 +62,7 @@ export type BoardData = {
     restart: number; 
     setRestart: Dispatch<SetStateAction<number>>;
     showProbability: boolean; 
+    AISolvingRef: RefObject<boolean>;
 };
 
 export type SettingsData = {

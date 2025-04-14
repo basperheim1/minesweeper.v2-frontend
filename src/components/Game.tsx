@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Board from "./Board";
 import Settings from "./Settings";
 import HamburgerMenu from "./HamburgerMenu";
 import ProbabilityLegend from "./Legend";
+import MinesweeperHeader from "./MinesweeperHeader";
+import { SolverHandle } from "../types/types";
 
 const Game = () => {
   const [restart, setRestart] = useState(0);
@@ -14,6 +16,8 @@ const Game = () => {
   const [mines, setMines] = useState(99);
   const [showSettings, setShowSettings] = useState(false);
   const [showProbability, setShowProbability] = useState<boolean>(true);
+  const AISolvingRef = useRef<boolean>(false);
+  const clickSolve = useRef<SolverHandle | null>(null);
 
   const applySettings = (
     newRows: number,
@@ -33,7 +37,7 @@ const Game = () => {
 
   return (
     <div className="relative min-h-screen flex">
-      {/* ✅ Hamburger always visible and on top */}
+      {/* Hamburger Menu */}
       <div className="fixed top-4 left-4 z-[10000]">
         <HamburgerMenu onClick={() => setShowSettings(!showSettings)} />
       </div>
@@ -42,7 +46,6 @@ const Game = () => {
       <AnimatePresence>
         {showSettings && (
           <>
-            {/* ❗ Make sure overlay is BELOW hamburger */}
             <motion.div
               className="fixed inset-0 bg-black/30 z-10"
               initial={{ opacity: 0 }}
@@ -50,8 +53,6 @@ const Game = () => {
               exit={{ opacity: 0 }}
               onClick={() => setShowSettings(false)}
             />
-
-            {/* Sidebar comes in from the left */}
             <motion.aside
               className="fixed top-0 left-0 z-20 w-100 h-full bg-white dark:bg-zinc-900 shadow-lg p-4 overflow-y-auto pt-10"
               initial={{ x: -400 }}
@@ -72,7 +73,11 @@ const Game = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-start p-6 gap-6 w-full z-0 relative">
-        <div className="mt-4 border-2 border-zinc-300 dark:border-zinc-700 p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900">
+        {/* Game Container with fixed width */}
+        <div className="border-2 border-zinc-300 dark:border-zinc-700 p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900 max-w-[768px] w-full flex flex-col items-center gap-4">
+          {/* 🔵 Header now inside the game container */}
+
+          {/* 🟩 Board */}
           <Board
             rows={rows}
             columns={columns}
@@ -80,11 +85,16 @@ const Game = () => {
             restart={restart}
             setRestart={setRestart}
             showProbability={showProbability}
+            AISolvingRef={AISolvingRef}
+            ref={clickSolve}
           />
-          <ProbabilityLegend />
-          <button onClick={() => setShowProbability((prob) => !prob)}>
-            toggle probability
-          </button>
+
+          <MinesweeperHeader
+            showProbability={showProbability}
+            setShowProbability={setShowProbability}
+            AISolvingRef={AISolvingRef}
+            solverRef={clickSolve}
+          />
         </div>
       </div>
     </div>
