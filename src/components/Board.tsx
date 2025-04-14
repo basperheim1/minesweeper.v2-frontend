@@ -130,9 +130,6 @@ const Board = forwardRef<SolverHandle, BoardData>(({
   // }, [AISolvingRef]);
 
   const clickSolve = () => {
-    // console.log("SDF");
-
-    // console.log("Button was pressed")
 
     if (gameOver) return; 
 
@@ -154,9 +151,10 @@ const Board = forwardRef<SolverHandle, BoardData>(({
 
     // If it is the first click, then we should set the 
     // appropriate ref variable that tracks this 
-    else if (!firstClickRef.current){
-      firstClickRef.current = true; 
-    }
+    // else if (!firstClickRef.current){
+    //   firstClickRef.current = true; 
+    //   console.log("HEREERHSFH")
+    // }
 
     // We will change a state variable with a useEffect tied to it so 
     // it will continuously click cells as the user wants the AI to 
@@ -595,7 +593,7 @@ const Board = forwardRef<SolverHandle, BoardData>(({
 
       // console.log("525");
 
-      let freshBoard = generateBoard(rows, columns);
+      let freshBoard: CellData[][] = generateBoard(rows, columns);
       freshBoard = addMines(freshBoard, mineCount, row, column);
       freshBoard = countBoardAdjacentMinesAndCells(freshBoard);
       updatedBoard = freshBoard;
@@ -747,6 +745,16 @@ const Board = forwardRef<SolverHandle, BoardData>(({
 
     const frequencies = await response.json();
 
+    // It is possible the user has reset the board, and therefore, the board has been 
+    // rest to one where no cells have ben clicked. In this case, we don't want to 
+    // call the functions below, as it would replace the new board with the stale one 
+    // from the previous round. 
+    if (firstClickRef.current) {
+      // console.log("We reset the board")
+      // console.log("WHAT THE FUCK WHAT THE FUCK");
+      return true;
+    }
+
     setCellsWithNoInformation(newCellsWithNoInformation);
     updateProbabilities(frequencies, updatedBoard, newCellsWithNoInformation);
     setDeterminedFirstProbability(true);
@@ -759,10 +767,10 @@ const Board = forwardRef<SolverHandle, BoardData>(({
   const clickCellAI = async (row: number, column: number): Promise<boolean> => {
 
     if (!AISolvingRef.current) {
-      return true;
+      return false;
     }
 
-    if (gameOver) return false;
+    if (gameOver) return true;
 
     // console.log("first click ref: ", firstClickRef.current);
 
