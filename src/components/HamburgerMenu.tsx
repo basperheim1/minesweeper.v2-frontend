@@ -11,7 +11,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="fixed top-4 left-4 z-[9999] flex flex-col justify-center items-center w-10 h-10 space-y-1 group"
+      className="cursor-pointer fixed top-4 left-4 z-[9999] flex flex-col justify-center items-center w-10 h-10 space-y-1 group"
       aria-label="Open Settings"
     >
       <span className="w-6 h-0.5 bg-[hsl(120,100%,30%)] transition-all group-hover:w-7" />

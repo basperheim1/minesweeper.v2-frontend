@@ -37,7 +37,7 @@ export type HeaderData = {
     showProbability: boolean;
     setShowProbability: Dispatch<SetStateAction<boolean>>;
     AISolvingRef: RefObject<boolean>;
-    solverRef: RefObject<SolverHandle>;
+    solverRef: RefObject<SolverHandle | null>;
 }
 
 export type SolverRequest = {

@@ -72,28 +72,26 @@ const Game = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-start p-6 gap-6 w-full z-0 relative">
-        {/* Game Container with fixed width */}
-        <div className="border-2 border-zinc-300 dark:border-zinc-700 p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900 max-w-[768px] w-full flex flex-col items-center gap-4">
-          {/* 🔵 Header now inside the game container */}
+        <div className="w-full overflow-x-auto">
+          <div className="w-max mx-auto border-2 border-zinc-300 dark:border-zinc-700 p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900 flex flex-col items-center gap-4">
+            <Board
+              rows={rows}
+              columns={columns}
+              mineCount={mines}
+              restart={restart}
+              setRestart={setRestart}
+              showProbability={showProbability}
+              AISolvingRef={AISolvingRef}
+              ref={clickSolve}
+            />
 
-          {/* 🟩 Board */}
-          <Board
-            rows={rows}
-            columns={columns}
-            mineCount={mines}
-            restart={restart}
-            setRestart={setRestart}
-            showProbability={showProbability}
-            AISolvingRef={AISolvingRef}
-            ref={clickSolve}
-          />
-
-          <MinesweeperHeader
-            showProbability={showProbability}
-            setShowProbability={setShowProbability}
-            AISolvingRef={AISolvingRef}
-            solverRef={clickSolve}
-          />
+            <MinesweeperHeader
+              showProbability={showProbability}
+              setShowProbability={setShowProbability}
+              AISolvingRef={AISolvingRef}
+              solverRef={clickSolve}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
   const mine = parseInt(mineInput);
 
   const rowsValid = !isNaN(row) && row >= 4 && row <= 24;
-  const colsValid = !isNaN(col) && col >= 6 && col <= 30;
+  const colsValid = !isNaN(col) && col >= 7 && col <= 30;
   const minesValid = !isNaN(mine) && mine >= 1 && mine <= row * col - 1;
 
   const anyInvalid = !rowsValid || !colsValid || !minesValid;
@@ -62,13 +62,13 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
       </h2>
 
       <div className="flex justify-center gap-4">
-        <Button variant="outline" onClick={() => applyPreset("beginner")}>
+        <Button variant="outline" className={"cursor-pointer"} onClick={() => applyPreset("beginner")}>
           Beginner
         </Button>
-        <Button variant="outline" onClick={() => applyPreset("intermediate")}>
+        <Button variant="outline" className={"cursor-pointer"} onClick={() => applyPreset("intermediate")}>
           Intermediate
         </Button>
-        <Button variant="outline" onClick={() => applyPreset("expert")}>
+        <Button variant="outline" className={"cursor-pointer"} onClick={() => applyPreset("expert")}>
           Expert
         </Button>
       </div>
@@ -110,17 +110,17 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
         </label>
         <div className="flex items-center gap-4">
           <Slider
-            min={6}
+            min={7}
             max={30}
             step={1}
-            value={[colsValid ? col : 6]}
+            value={[colsValid ? col : 7]}
             onValueChange={(val) => setColInput(val[0].toString())}
           />
           <input
             type="text"
             value={colInput}
             onChange={(e) => setColInput(e.target.value)}
-            onBlur={() => handleBlur(colInput, 6, 30, setColInput)}
+            onBlur={() => handleBlur(colInput, 7, 30, setColInput)}
             className={`w-16 px-2 py-1 border rounded-md text-sm bg-white dark:bg-zinc-800 ${
               colsValid
                 ? "text-zinc-900 dark:text-white"
@@ -129,7 +129,7 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
           />
         </div>
         {!colsValid && (
-          <p className="text-xs text-red-500">Must be between 6 and 30</p>
+          <p className="text-xs text-red-500">Must be between 7 and 30</p>
         )}
       </div>
 
@@ -172,7 +172,7 @@ const Settings: React.FC<SettingsData> = ({ rows, columns, mines, applySettings 
         <Button
           onClick={() => applySettings(row, col, mine)}
           disabled={anyInvalid}
-          className="px-6 py-2 text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="cursor-pointer px-6 py-2 text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           New Game
         </Button>

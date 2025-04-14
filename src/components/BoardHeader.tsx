@@ -38,7 +38,7 @@ const BoardHeader: React.FC<BoardHeaderProps> = ({
       {/* Smiley Button */}
       <button
         onClick={onReset}
-        className="w-10 h-10 bg-[#C0C0C0] border-[3px] border-[#7B7B7B] flex items-center justify-center text-xl shadow-sm hover:brightness-110 active:translate-y-[1px]"
+        className="cursor-pointer w-10 h-10 bg-[#C0C0C0] border-[3px] border-[#7B7B7B] flex items-center justify-center text-xl shadow-sm hover:brightness-110 active:translate-y-[1px]"
       >
         {emoji}
       </button>
